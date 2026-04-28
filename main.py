@@ -153,7 +153,7 @@ def generate_vibe_report() -> str:
 - Пиши на русском языке"""
 
     response = llm.chat.completions.create(
-        model="meta-llama/llama-3.1-8b-instruct:free",
+        model="google/gemma-3-12b-it:free",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
