@@ -13,7 +13,7 @@ from datetime import datetime
 TWOGIS_KEY     = os.getenv("TWOGIS_KEY")
 WEATHER_KEY    = os.getenv("WEATHER_KEY")
 NEWSAPI_KEY    = os.getenv("NEWSAPI_KEY", "")
-GEMINI_KEY = os.getenv("GEMINI_KEY").
+GEMINI_KEY = os.getenv("GEMINI_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
