@@ -13,14 +13,13 @@ from datetime import datetime
 TWOGIS_KEY     = os.getenv("TWOGIS_KEY")
 WEATHER_KEY    = os.getenv("WEATHER_KEY")
 NEWSAPI_KEY    = os.getenv("NEWSAPI_KEY", "")
-GEMINI_KEY = os.getenv("GEMINI_KEY")
+OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 DB_FILE = "vibe_db.json"
 
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel("gemini-2.0-flash")
+llm = OpenAI(api_key=OPENROUTER_KEY, base_url="https://openrouter.ai/api/v1")
 
 def save_to_db(date: str, data: dict):
     db = {}
@@ -153,8 +152,11 @@ def generate_vibe_report() -> str:
 - В конце поставь эмодзи-оценку (например: 🌤 7/10)
 - Пиши на русском языке"""
 
-    response = model.generate_content(prompt)
-    return response.text
+     response = llm.chat.completions.create(
+        model="meta-llama/llama-4-scout:free",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
 #tg bot
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
