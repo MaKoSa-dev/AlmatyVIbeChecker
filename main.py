@@ -3,7 +3,7 @@ import requests
 import json
 import os
 from bs4 import BeautifulSoup
-import google.generativeai as genai
+from openai import OpenAI
 import telebot
 from telebot.types import Message
 import schedule
