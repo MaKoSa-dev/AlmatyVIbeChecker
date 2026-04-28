@@ -1,6 +1,6 @@
 requests
 beautifulsoup4
 lxml
-google-generativeai
+openai
 pytelegrambotapi
 schedule
