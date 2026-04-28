@@ -152,7 +152,7 @@ def generate_vibe_report() -> str:
 - В конце поставь эмодзи-оценку (например: 🌤 7/10)
 - Пиши на русском языке"""
 
-     response = llm.chat.completions.create(
+    response = llm.chat.completions.create(
         model="meta-llama/llama-4-scout:free",
         messages=[{"role": "user", "content": prompt}]
     )
