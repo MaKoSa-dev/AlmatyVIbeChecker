@@ -153,7 +153,7 @@ def generate_vibe_report() -> str:
 - Пиши на русском языке"""
 
     response = llm.chat.completions.create(
-        model="google/gemma-3-12b-it:free",
+        model="deepseek/deepseek-r1-distill-llama-70b:free",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
