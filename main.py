@@ -188,6 +188,69 @@ def cmd_stop(message: Message):
     subscribers.discard(message.chat.id)
     bot.reply_to(message, "Отписался. Напиши /start чтобы подписаться снова.")
 @bot.message_handler(commands=["traffic"])
+ 
+@bot.message_handler(commands=["aqi"])
+def cmd_aqi(message: Message):
+    bot.reply_to(message, "⏳ Проверяю воздух...")
+    try:
+        report = run_aqi_agent()
+        bot.reply_to(message, f"🌫 {report}")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка: {e}")
+ 
+ 
+@bot.message_handler(commands=["exchange"])
+def cmd_exchange(message: Message):
+    bot.reply_to(message, "⏳ Проверяю курсы...")
+    try:
+        report = run_exchange_agent()
+        bot.reply_to(message, f"💰 *Курс валют к тенге:*\n\n{report}", parse_mode="Markdown")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка: {e}")
+ 
+ 
+@bot.message_handler(commands=["recommend"])
+def cmd_recommend(message: Message):
+    bot.reply_to(message, "Напиши своё настроение или запрос, например:\n\n"
+        "• хочу погулять\n"
+        "• ищу кафе с wi-fi\n"
+        "• куда сходить с детьми\n"
+        "• хочу активного отдыха")
+ 
+ 
+@bot.message_handler(func=lambda m: not m.text.startswith("/"))
+def handle_recommend(message: Message):
+    bot.reply_to(message, "⏳ Думаю над рекомендацией...")
+    try:
+        # Берём последние данные из базы
+        from datetime import datetime
+        today = datetime.now().strftime("%d.%m.%Y")
+        data = get_from_db(today)
+ 
+        context = ""
+        if data:
+            context = f"""
+Текущие данные по Алматы:
+- {data.get('weather', '')}
+- {data.get('events', '')}
+- {data.get('places', '')}
+"""
+ 
+        prompt = f"""Ты — личный гид по Алматы. Пользователь написал: "{message.text}"
+ 
+{context}
+ 
+Дай конкретный и живой совет что делать в Алматы прямо сейчас. 
+Упомяни реальные места, районы или события если знаешь.
+Длина: 3-4 предложения. Пиши на русском."""
+ 
+        response = llm.chat.completions.create(
+            model="deepseek/deepseek-chat-v3-5:free",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        bot.reply_to(message, f"🗺 {response.choices[0].message.content}")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка: {e}")
 def cmd_traffic(message: Message):
     bot.reply_to(message, "⏳ Проверяю дороги...")
     try:
@@ -233,7 +296,44 @@ def run_traffic_agent() -> str:
     
     return f"Пробки в Алматы: {status} (уровень {score}/10)"
 
-
+#Воздух
+def run_aqi_agent() -> str:
+    r = requests.get("https://api.openweathermap.org/data/2.5/air_pollution", params={
+        "lat": "43.2567",
+        "lon": "76.9286",
+        "appid": WEATHER_KEY
+    })
+    if r.status_code != 200:
+        return "Данные о воздухе недоступны"
+ 
+    aqi = r.json()["list"][0]["main"]["aqi"]
+    levels = {
+        1: "🟢 Отличный — дышите полной грудью!",
+        2: "🟡 Хороший — всё в порядке",
+        3: "🟠 Умеренный — чувствительным людям осторожно",
+        4: "🔴 Плохой — лучше меньше времени на улице",
+        5: "🟣 Очень плохой — оставайтесь дома"
+    }
+    return f"Качество воздуха в Алматы: {levels.get(aqi, 'Нет данных')} (индекс {aqi}/5)"
+ 
+ 
+# Валюта
+def run_exchange_agent() -> str:
+    r = requests.get("https://api.exchangerate-api.com/v4/latest/KZT")
+    if r.status_code != 200:
+        return "Курс валют недоступен"
+ 
+    rates = r.json().get("rates", {})
+    usd = round(1 / rates.get("USD", 0), 2) if rates.get("USD") else "—"
+    rub = round(1 / rates.get("RUB", 0), 2) if rates.get("RUB") else "—"
+    eur = round(1 / rates.get("EUR", 0), 2) if rates.get("EUR") else "—"
+ 
+    return (
+        f"💵 1 USD = {usd} тенге\n"
+        f"💶 1 EUR = {eur} тенге\n"
+        f"🇷🇺 1 RUB = {rub} тенге"
+    )
+ 
 @bot.message_handler(commands=["traffic"])
 def cmd_traffic(message: Message):
     bot.reply_to(message, "⏳ Проверяю дороги...")
