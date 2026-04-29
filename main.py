@@ -148,12 +148,12 @@ def generate_vibe_report() -> str:
 Требования:
 - Длина: 4-6 предложений
 - Тон: живой, как у городского блогера
-- Упомяни погоду, атмосферу, топ-место и событие
+- Упомяни погоду, атмосферу, топ-место, пробки и событие
 - В конце поставь эмодзи-оценку (например: 🌤 7/10)
 - Пиши на русском языке"""
 
     response = llm.chat.completions.create(
-        model="deepseek/deepseek-v4-flash",
+        model="meta-llama/llama-4-scout:free",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
@@ -187,7 +187,14 @@ def cmd_vibe(message: Message):
 def cmd_stop(message: Message):
     subscribers.discard(message.chat.id)
     bot.reply_to(message, "Отписался. Напиши /start чтобы подписаться снова.")
-
+@bot.message_handler(commands=["traffic"])
+def cmd_traffic(message: Message):
+    bot.reply_to(message, "⏳ Проверяю дороги...")
+    try:
+        report = run_traffic_agent()
+        bot.reply_to(message, f"🚗 {report}")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка: {e}")
 def send_daily_report():
     if not subscribers:
         return
@@ -201,6 +208,40 @@ def send_daily_report():
             )
     except Exception as e:
         print(f"Ошибка рассылки: {e}")
+
+#/traffic
+def run_traffic_agent() -> str:
+    url = "https://catalog.api.2gis.com/3.0/traffic"
+    params = {
+        "location": "76.9286,43.2567",
+        "key": TWOGIS_KEY
+    }
+    r = requests.get(url, params=params)
+    if r.status_code != 200:
+        return "Данные о пробках недоступны"
+    
+    data = r.json()
+    level = data.get("traffic_level", {})
+    score = level.get("score", 0)
+    
+    if score <= 3:
+        status = "🟢 Свободно"
+    elif score <= 6:
+        status = "🟡 Умеренные пробки"
+    else:
+        status = "🔴 Серьёзные пробки"
+    
+    return f"Пробки в Алматы: {status} (уровень {score}/10)"
+
+
+@bot.message_handler(commands=["traffic"])
+def cmd_traffic(message: Message):
+    bot.reply_to(message, "⏳ Проверяю дороги...")
+    try:
+        report = run_traffic_agent()
+        bot.reply_to(message, f"🚗 {report}")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Ошибка: {e}")
 
 def run_scheduler():
     schedule.every().day.at("09:00").do(send_daily_report)
