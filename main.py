@@ -1,9 +1,8 @@
 import os
 import requests
 import json
-import os
 from bs4 import BeautifulSoup
-from openai import OpenAI
+from groq import Groq
 import telebot
 from telebot.types import Message
 import schedule
@@ -13,13 +12,13 @@ from datetime import datetime
 TWOGIS_KEY     = os.getenv("TWOGIS_KEY")
 WEATHER_KEY    = os.getenv("WEATHER_KEY")
 NEWSAPI_KEY    = os.getenv("NEWSAPI_KEY", "")
-OPENROUTER_KEY = os.getenv("OPENROUTER_KEY")
+GROQ_KEY = os.getenv("GROQ_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 DB_FILE = "vibe_db.json"
 
-llm = OpenAI(api_key=OPENROUTER_KEY, base_url="https://openrouter.ai/api/v1")
+llm = Groq(api_key=GROQ_KEY)
 
 def save_to_db(date: str, data: dict):
     db = {}
@@ -153,7 +152,7 @@ def generate_vibe_report() -> str:
 - Пиши на русском языке"""
 
     response = llm.chat.completions.create(
-        model="meta-llama/llama-4-scout:free",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
@@ -187,7 +186,6 @@ def cmd_vibe(message: Message):
 def cmd_stop(message: Message):
     subscribers.discard(message.chat.id)
     bot.reply_to(message, "Отписался. Напиши /start чтобы подписаться снова.")
-@bot.message_handler(commands=["traffic"])
  
 @bot.message_handler(commands=["aqi"])
 def cmd_aqi(message: Message):
@@ -245,17 +243,10 @@ def handle_recommend(message: Message):
 Длина: 3-4 предложения. Пиши на русском."""
  
         response = llm.chat.completions.create(
-            model="deepseek/deepseek-chat-v3-5:free",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}]
         )
         bot.reply_to(message, f"🗺 {response.choices[0].message.content}")
-    except Exception as e:
-        bot.reply_to(message, f"❌ Ошибка: {e}")
-def cmd_traffic(message: Message):
-    bot.reply_to(message, "⏳ Проверяю дороги...")
-    try:
-        report = run_traffic_agent()
-        bot.reply_to(message, f"🚗 {report}")
     except Exception as e:
         bot.reply_to(message, f"❌ Ошибка: {e}")
 def send_daily_report():
